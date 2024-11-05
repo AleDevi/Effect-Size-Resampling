@@ -12,7 +12,7 @@ library(boot)
 #
 #
 
-generate_funny_dataset <- function(n_samples =60, seed = sample(1000000, 1), na_percentage = 0.1) {
+generate_funny_dataset <- function(n_samples =40, seed = sample(1000000, 1), na_percentage = 0.1) {
         set.seed(seed)
         
         # Genera la colonna 'group' e variabili indipendenti con nomi buffi
