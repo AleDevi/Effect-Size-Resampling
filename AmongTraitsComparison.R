@@ -1,6 +1,8 @@
-#######Updated version to compare effect sizes among traits visually
+###quarta versione
+
 BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2, FIN = ncol(x), G1 = "high", G2 = "low", 
-                                     n_iter = 1000, conf_method = "percentile", SEED = 123, method = "Hedges") {
+                                    n_iter = 1000, conf_method = "percentile", SEED = 123, method = "Hedges",
+                                    show_histograms = TRUE, show_pairwise_comparisons = FALSE) {
         set.seed(SEED)
         library(dplyr)
         library(ggplot2)
@@ -60,25 +62,17 @@ BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2
                        })
         }
         
+        # Calcola le medie e gli intervalli di confidenza originali per ciascun tratto
         ci_summary <- data.frame(
                 Variable = vars,
                 mean = rowMeans(effect_sizes, na.rm = TRUE)
         )
         
         ci_results <- t(sapply(1:nrow(effect_sizes), function(i) calc_ci(effect_sizes[i,], conf_method)))
-        ci_summary$lower <- ci_results[,1]
-        ci_summary$upper <- ci_results[,2]
+        ci_summary$lower <- ci_results[, 1]
+        ci_summary$upper <- ci_results[, 2]
         
-        ci_summary <- ci_summary %>%
-                mutate(
-                        significant = lower > 0 | upper < 0,
-                        observed_n1 = sapply(vars, function(var) sum(!is.na(pop1[[var]]))),
-                        observed_n2 = sapply(vars, function(var) sum(!is.na(pop2[[var]]))),
-                        mean_resampled_n1 = sapply(vars, function(var) sum(!is.na(pop1[[var]]))),
-                        mean_resampled_n2 = sapply(vars, function(var) sum(!is.na(pop2[[var]])))
-                )
-        
-        # Plotting the effect sizes
+        # Plot degli effect sizes con gli intervalli di confidenza (senza valore assoluto)
         plot <- ggplot(ci_summary, aes(x = Variable, y = mean, ymin = lower, ymax = upper)) +
                 geom_pointrange(color = "blue", size = 1) +
                 geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
@@ -87,19 +81,19 @@ BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2
                 theme(axis.text.x = element_text(angle = 45, hjust = 1))
         
         print(plot)
-        cat("\nMethod used for Effect Sizes:", method, "\n")
-        cat("Confidence Method:", conf_method, "\n")
-        cat("Number of Iterations:", n_iter, "\n\n")
         
-        histograms <- lapply(1:nrow(effect_sizes), function(i) {
-                ggplot(data.frame(effect_dist = effect_sizes[i,]), aes(x = effect_dist)) +
-                        geom_histogram(binwidth = 0.1, fill = "blue", alpha = 0.7) +
-                        geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
-                        labs(title = paste("Effect Size Distribution for", vars[i]), x = "Effect Size", y = "Frequency") +
-                        theme_minimal()
-        })
+        # Calcola gli intervalli di confidenza per i valori assoluti per il confronto tra ES
+        abs_effect_sizes <- abs(effect_sizes)
+        abs_ci_summary <- data.frame(
+                Variable = vars,
+                abs_mean = rowMeans(abs_effect_sizes, na.rm = TRUE)
+        )
         
-        # Pairwise comparisons among traits
+        abs_ci_results <- t(sapply(1:nrow(abs_effect_sizes), function(i) calc_ci(abs_effect_sizes[i,], conf_method)))
+        abs_ci_summary <- abs_ci_summary %>%
+                mutate(lower_abs = abs_ci_results[, 1], upper_abs = abs_ci_results[, 2])
+        
+        # Generazione del dataframe con i confronti a coppie sui valori assoluti
         pairwise_comparisons <- expand.grid(Trait1 = vars, Trait2 = vars) %>%
                 filter(Trait1 != Trait2) %>%
                 rowwise() %>%
@@ -113,15 +107,85 @@ BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2
                 ungroup() %>%
                 select(Trait1, Trait2, Significant_Difference)
         
-        # Plot for pairwise comparisons
-        pairwise_plot <- ggplot(pairwise_comparisons, aes(x = Trait1, y = Trait2, fill = Significant_Difference)) +
-                geom_tile(color = "white") +
-                scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "grey")) +
-                labs(title = "Pairwise Significant Differences Between Traits", x = "Trait 1", y = "Trait 2") +
-                theme_minimal() +
-                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+        # Confronti sui valori assoluti
+        abs_pairwise_comparisons <- expand.grid(Trait1 = vars, Trait2 = vars) %>%
+                filter(Trait1 != Trait2) %>%
+                rowwise() %>%
+                mutate(
+                        lower1_abs = abs_ci_summary$lower_abs[abs_ci_summary$Variable == Trait1],
+                        upper1_abs = abs_ci_summary$upper_abs[abs_ci_summary$Variable == Trait1],
+                        lower2_abs = abs_ci_summary$lower_abs[abs_ci_summary$Variable == Trait2],
+                        upper2_abs = abs_ci_summary$upper_abs[abs_ci_summary$Variable == Trait2],
+                        Abs_Significant_Difference = !(upper1_abs > lower2_abs & lower1_abs < upper2_abs)
+                ) %>%
+                ungroup() %>%
+                select(Trait1, Trait2, Abs_Significant_Difference)
         
-        print(pairwise_plot)
+        # Mostra gli istogrammi per ciascun trait
+        if (show_histograms) {
+                histograms <- lapply(1:nrow(effect_sizes), function(i) {
+                        ggplot(data.frame(effect_dist = effect_sizes[i,]), aes(x = effect_dist)) +
+                                geom_histogram(binwidth = 0.1, fill = "blue", alpha = 0.7) +
+                                geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+                                labs(title = paste("Effect Size Distribution for", vars[i]), x = "Effect Size", y = "Frequency") +
+                                theme_minimal()
+                })
+                
+                # Stampa gli istogrammi
+                for (hist in histograms) {
+                        print(hist)
+                }
+        }
         
-        return(list(summary = ci_summary, pairwise_comparisons = pairwise_comparisons, histograms = histograms))
+        # Mostra i confronti a coppie in base all'argomento
+        if (show_pairwise_comparisons == TRUE) {
+                # Visualizzazione dei confronti a coppie sui valori originali
+                pairwise_plot <- ggplot(pairwise_comparisons, aes(x = Trait1, y = Trait2, fill = Significant_Difference)) +
+                        geom_tile(color = "white") +
+                        scale_fill_manual(values = c("TRUE" = "blue", "FALSE" = "grey")) +
+                        labs(title = "Pairwise Significant Differences Between Traits (Original ES)", x = "Trait 1", y = "Trait 2") +
+                        theme_minimal() +
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+                
+                print(pairwise_plot)
+                
+                # Visualizzazione dei confronti a coppie sui valori assoluti
+                abs_pairwise_plot <- ggplot(abs_pairwise_comparisons, aes(x = Trait1, y = Trait2, fill = Abs_Significant_Difference)) +
+                        geom_tile(color = "white") +
+                        scale_fill_manual(values = c("TRUE" = "blue", "FALSE" = "grey")) +
+                        labs(title = "Pairwise Significant Differences Between Traits (Absolute ES)", x = "Trait 1", y = "Trait 2") +
+                        theme_minimal() +
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+                
+                print(abs_pairwise_plot)
+                
+        } else if (show_pairwise_comparisons == "PAIR") {
+                # Visualizzazione dei confronti a coppie sui valori originali
+                pairwise_plot <- ggplot(pairwise_comparisons, aes(x = Trait1, y = Trait2, fill = Significant_Difference)) +
+                        geom_tile(color = "white") +
+                        scale_fill_manual(values = c("TRUE" = "blue", "FALSE" = "grey")) +
+                        labs(title = "Pairwise Significant Differences Between Traits (Original ES)", x = "Trait 1", y = "Trait 2") +
+                        theme_minimal() +
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+                
+                print(pairwise_plot)
+                
+        } else if (show_pairwise_comparisons == "ABS") {
+                # Visualizzazione dei confronti a coppie sui valori assoluti
+                abs_pairwise_plot <- ggplot(abs_pairwise_comparisons, aes(x = Trait1, y = Trait2, fill = Abs_Significant_Difference)) +
+                        geom_tile(color = "white") +
+                        scale_fill_manual(values = c("TRUE" = "blue", "FALSE" = "grey")) +
+                        labs(title = "Pairwise Significant Differences Between Traits (Absolute ES)", x = "Trait 1", y = "Trait 2") +
+                        theme_minimal() +
+                        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+                
+                print(abs_pairwise_plot)
+        }
+        
+        return(list(summary = ci_summary, pairwise_comparisons = pairwise_comparisons, abs_pairwise_comparisons = abs_pairwise_comparisons))
 }
+
+
+
+results<-BootstrapEffectSizesOPTG(test_data,n_iter = 100,method="Hedges", GR= "group",show_histograms = T, show_pairwise_comparisons = T)
+results
