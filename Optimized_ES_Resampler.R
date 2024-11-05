@@ -3,6 +3,31 @@
 BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2, FIN = ncol(x), G1 = "high", G2 = "low", 
                                     n_iter = 1000, conf_method = "percentile", SEED = 123, method = "Hedges",
                                     show_histograms = TRUE, show_pairwise_comparisons = FALSE) {
+        # x: Data frame containing the data to analyze.
+        # Replacement: Boolean (TRUE or FALSE). 
+        #               Indicates whether to sample with replacement (default = TRUE).
+        # GR: String specifying the grouping variable (e.g., "group"). 
+        #     This variable is used to define which observations belong to which groups.
+        # IN: Integer specifying the starting index for the traits/variables to analyze (default = 2).
+        # FIN: Integer specifying the ending index for the traits/variables to analyze (default = number of columns in x).
+        # G1: String specifying the first group to compare (default = "high").
+        # G2: String specifying the second group to compare (default = "low").
+        # n_iter: Integer specifying the number of bootstrap iterations (default = 1000).
+        # conf_method: String indicating the method to calculate confidence intervals. Options include:
+        #              "SD" for standard deviation, 
+        #              "percentile" for percentile method (default), 
+        #              "BCa" for bias-corrected and accelerated method, 
+        #              "bootstrap-t" for bootstrap-t method.
+        # SEED: Integer for setting the random seed for reproducibility (default = 123).
+        # method: String specifying the effect size calculation method. Options include:
+        #         "Hedges" for Hedges' g (default).
+        # show_histograms: Boolean (TRUE or FALSE) to indicate whether to display histograms of effect size distributions (default = TRUE).
+        # show_pairwise_comparisons: Can be:
+        #                            FALSE: No pairwise comparisons are shown.
+        #                            TRUE: Both original and absolute pairwise comparisons are shown.
+        #                            "ABS": Only absolute pairwise comparisons are shown.
+        #                            "PAIR": Only original pairwise comparisons are shown.
+        
         set.seed(SEED)
         library(dplyr)
         library(ggplot2)
@@ -185,6 +210,31 @@ BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2
         return(list(summary = ci_summary, pairwise_comparisons = pairwise_comparisons, abs_pairwise_comparisons = abs_pairwise_comparisons))
 }
 
+
+# x: Data frame containing the data to analyze.
+# Replacement: Boolean (TRUE or FALSE). 
+#               Indicates whether to sample with replacement (default = TRUE).
+# GR: String specifying the grouping variable (e.g., "group"). 
+#     This variable is used to define which observations belong to which groups.
+# IN: Integer specifying the starting index for the traits/variables to analyze (default = 2).
+# FIN: Integer specifying the ending index for the traits/variables to analyze (default = number of columns in x).
+# G1: String specifying the first group to compare (default = "high").
+# G2: String specifying the second group to compare (default = "low").
+# n_iter: Integer specifying the number of bootstrap iterations (default = 1000).
+# conf_method: String indicating the method to calculate confidence intervals. Options include:
+#              "SD" for standard deviation, 
+#              "percentile" for percentile method (default), 
+#              "BCa" for bias-corrected and accelerated method, 
+#              "bootstrap-t" for bootstrap-t method.
+# SEED: Integer for setting the random seed for reproducibility (default = 123).
+# method: String specifying the effect size calculation method. Options include:
+#         "Hedges" for Hedges' g (default).
+# show_histograms: Boolean (TRUE or FALSE) to indicate whether to display histograms of effect size distributions (default = TRUE).
+# show_pairwise_comparisons: Can be:
+#                            FALSE: No pairwise comparisons are shown.
+#                            TRUE: Both original and absolute pairwise comparisons are shown.
+#                            "ABS": Only absolute pairwise comparisons are shown.
+#                            "PAIR": Only original pairwise comparisons are shown.
 
 
 results<-BootstrapEffectSizesOPTG(test_data,n_iter = 100,method="Hedges", GR= "group",show_histograms = T, show_pairwise_comparisons = T)
