@@ -686,12 +686,6 @@ BootstrapEffectSizesOPTG <- function(x, Replacement = TRUE, GR = "group", IN = 2
         }
         
         return(list(summary = ci_summary, pairwise_comparisons = pairwise_comparisons, abs_pairwise_comparisons = abs_pairwise_comparisons))
-}
+} #seems ok but very slow
 
 
-
-
-
-
-results<-BootstrapEffectSizesOPTG(test_data,n_iter = 100,method="Cohens", GR= "group",show_histograms = F, show_pairwise_comparisons = F)
-results
