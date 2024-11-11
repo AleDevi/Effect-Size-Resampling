@@ -422,4 +422,5 @@ BootstrapEffectSizesOPT <- function(x, Replacement = TRUE, GR = "group", IN = 2,
 
 
 
-results<-BootstrapEffectSizesOPT(test_data,n_iter = 100,method="Hedges", GR= "group")
+results<-BootstrapEffectSizesOPT(test_data,n_iter = 100,method="Cohens", GR= "group")
+
